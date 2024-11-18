@@ -1,7 +1,7 @@
 import random
 import numpy as np
 
-# Função de aptidão ajustada
+# Função de aptidão ajustada para calcular a diferença entre o volume previsto e o volume real de chamadas
 
 
 def fitness(predicted, actual):
@@ -25,12 +25,12 @@ def generate_population(size, n_features=6):
     population = []
     for _ in range(size):
         individual = [
-            random.randint(0, 1),  # Hora do dia (0 = manhã, 1 = tarde)
+            random.randint(0, 1),   # Hora do dia (0 = manhã, 1 = tarde)
             random.randint(0, 5),   # Dia da semana (0 a 5)
             random.randint(30, 80),  # Volume de chamadas anterior (30 a 80)
-            random.randint(1, 5),  # Satisfação do cliente (1 a 5)
-            random.randint(3, 3) if random.randint(
-                0, 1) == 0 else random.randint(3, 3)  # 3 de manhã e 3 à tarde
+            random.randint(1, 5),   # Satisfação do cliente (1 a 5)
+            random.randint(3, 5),   # Número de agentes disponíveis de manhã
+            random.randint(3, 5),   # Número de agentes disponíveis à tarde
         ]
         population.append(individual)
     return population
@@ -45,10 +45,11 @@ def select_population(population, actual, num_selected):
         dia_semana = individual[1]
         volume_chamadas = individual[2]
         satisfacao_cliente = individual[3]
-        agentes = individual[4]
+        agentes_manha = individual[4]
+        agentes_tarde = individual[5]
 
         predicted = calcular_volume_chamadas(
-            10, 300, 26, agentes, agentes, satisfacao_cliente)
+            10, 300, 26, agentes_manha, agentes_tarde, satisfacao_cliente)
         score = fitness(predicted, actual)
         scores.append((score, individual))
 
@@ -71,7 +72,16 @@ def crossover(parent1, parent2):
 def mutate(individual, mutation_rate=0.01):
     for i in range(len(individual)):
         if random.random() < mutation_rate:
-            individual[i] = random.uniform(0, 1)
+            if i == 0:  # Hora do dia
+                individual[i] = random.randint(0, 1)
+            elif i == 1:  # Dia da semana
+                individual[i] = random.randint(0, 5)
+            elif i == 2:  # Volume de chamadas anterior
+                individual[i] = random.randint(30, 80)
+            elif i == 3:  # Satisfação do cliente
+                individual[i] = random.randint(1, 5)
+            elif i == 4 or i == 5:  # Número de agentes
+                individual[i] = random.randint(3, 5)
     return individual
 
 # Função principal para rodar o algoritmo genético
@@ -100,7 +110,7 @@ def genetic_algorithm(actual, population_size=100, num_generations=500, mutation
         # Avaliar a melhor solução da geração
         best_individual = select_population(population, actual, 1)[0]
         best_prediction = calcular_volume_chamadas(
-            10, 300, 26, best_individual[4], best_individual[4], best_individual[3])
+            10, 300, 26, best_individual[4], best_individual[5], best_individual[3])
         print(f"Geração {generation + 1}, Melhor previsão: {best_prediction}")
 
     # Retorna a melhor solução encontrada
@@ -115,7 +125,7 @@ if __name__ == "__main__":
     # Rodando o algoritmo genético para estimar o volume de chamadas
     best_solution = genetic_algorithm(actual_call_volume)
     predicted_volume = calcular_volume_chamadas(
-        10, 300, 26, best_solution[4], best_solution[4], best_solution[3])
+        10, 300, 26, best_solution[4], best_solution[5], best_solution[3])
 
     # Arredondando o valor da previsão para o inteiro mais próximo
     rounded_predicted_volume = round(predicted_volume)
